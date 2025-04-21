@@ -10,6 +10,9 @@ const ELECTRODE_SIZE = 12;         // edge length in µm
 const ELECTRODE_THICKNESS = 3;     // in µm
 const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
 
+// const HDR_FILENAME = 'paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
+const HDR_FILENAME = 'studio_small_08_1k.hdr';  // high-contrast studio lights
+
 // === Scene Setup ===
 const scene = new THREE.Scene();
 // Set a dark background for better contrast
@@ -17,17 +20,18 @@ scene.background = new THREE.Color(0x202020);
 // Load an HDR environment for realistic transmission reflections
 new RGBELoader()
   .setDataType(THREE.HalfFloatType)
-  .load('studio_small_03_1k.hdr', (hdr) => {
+  .load(HDR_FILENAME, (hdr) => {
     hdr.mapping = THREE.EquirectangularReflectionMapping;
     scene.environment = hdr;
   });
+  scene.environmentIntensity = 1 // scale the reflectance of the HDR environment
+
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
-  0.1,
-  1000
+  0.001,    // instead of 0.1
+  10
 );
-// camera.position.set(0, 0, 50);
 camera.position.set(0.28, CAMERA_YPOS, 1.28);
 
 const renderer = new THREE.WebGLRenderer({
@@ -65,36 +69,21 @@ controls.autoRotate = true;
 controls.autoRotateSpeed = 2; // adjust rotation speed (default is 1)
 controls.target.set(0, CAMERA_YPOS, 0);
 
-// === Lighting ===
-const ambient = new THREE.AmbientLight(0xffffff, 1.0);
-scene.add(ambient);
-
-function addLight(x, y, z) {
-  const light = new THREE.DirectionalLight(0xffffff, 10)
-  light.position.set(x, y, z);
-  scene.add(light);
-}
-
-// Add four lights to illuminate each of the main faces
-addLight(0, 0, 10);
-addLight(0, 0, -10);
-addLight(10, 0, 0);
-addLight(-10, 0, 0);
-
 // === Materials ===
 const siliconMat = new THREE.MeshPhysicalMaterial({
   color: 0x888888,
-  metalness: 0.4,
+  metalness: 0.1,
   roughness: 0.1,
   transparent: true,
   transmission: 0.9,
+  // thickness: 1,
   thickness: WAFER_THICKNESS * MICRON_TO_UNIT,
   attenuationDistance: WAFER_THICKNESS * MICRON_TO_UNIT * 2,
   attenuationColor: 0xffffff,
   side: THREE.DoubleSide,
   polygonOffset: true,    // necessary to prevent z-fighting
   polygonOffsetFactor: 1,
-  polygonOffsetUnits: 1
+  polygonOffsetUnits: 1,
 });
 
 const electrodeMat = new THREE.MeshStandardMaterial({
@@ -142,10 +131,6 @@ async function buildProbe() {
   });
   shape.closePath();
 
-  // console.log(shape.getPoints(), shape.currentPath.autoClose);
-  // const polys = THREE.ShapeUtils.triangulateShape(shape.getPoints(), []);
-  // console.log('Cap tris:', polys.length);
-
   // 1. Extract the raw points for triangulation:
 const { shape: outerPts, holes } = shape.extractPoints();
 
@@ -161,13 +146,18 @@ console.log('Number of cap triangles:', tris.length);
   const extrudeSettings = {
     depth: WAFER_THICKNESS * MICRON_TO_UNIT,
     bevelEnabled: false,
-    openEnded: false,
+    openEnded: true,
   };
   const waferGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  // Debug: log out geometry groups to verify caps and sides
+  console.log('waferGeo.groups:', waferGeo.groups);
+  waferGeo.groups.forEach((group, idx) => {
+    console.log(`Group ${idx}: start=${group.start}, count=${group.count}, matIndex=${group.materialIndex}`);
+  });
   waferGeo.computeVertexNormals();
   const waferMesh = new THREE.Mesh(waferGeo, siliconMat);
   scene.add(waferMesh);
-  
+
   // Manually add front and back caps to ensure faces are rendered
   const capGeo = new THREE.ShapeGeometry(shape);
   // Front cap (at z=0)
