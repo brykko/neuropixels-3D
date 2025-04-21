@@ -84,7 +84,7 @@ addLight(-10, 0, 0);
 // === Materials ===
 const siliconMat = new THREE.MeshPhysicalMaterial({
   color: 0x888888,
-  metalness: 0.3,
+  metalness: 0.4,
   roughness: 0.1,
   transparent: true,
   transmission: 0.9,
@@ -92,6 +92,9 @@ const siliconMat = new THREE.MeshPhysicalMaterial({
   attenuationDistance: WAFER_THICKNESS * MICRON_TO_UNIT * 2,
   attenuationColor: 0xffffff,
   side: THREE.DoubleSide,
+  polygonOffset: true,    // necessary to prevent z-fighting
+  polygonOffsetFactor: 1,
+  polygonOffsetUnits: 1
 });
 
 const electrodeMat = new THREE.MeshStandardMaterial({
@@ -139,6 +142,21 @@ async function buildProbe() {
   });
   shape.closePath();
 
+  // console.log(shape.getPoints(), shape.currentPath.autoClose);
+  // const polys = THREE.ShapeUtils.triangulateShape(shape.getPoints(), []);
+  // console.log('Cap tris:', polys.length);
+
+  // 1. Extract the raw points for triangulation:
+const { shape: outerPts, holes } = shape.extractPoints();
+
+// 2. Log how many outer‐contour points and holes you have:
+console.log('Outer contour points:', outerPts.length);
+console.log('Hole contours:', holes.length);
+
+// 3. Run the earcut triangulator and see how many triangles it produces:
+const tris = THREE.ShapeUtils.triangulateShape(outerPts, holes);
+console.log('Number of cap triangles:', tris.length);
+
   // Extrude wafer
   const extrudeSettings = {
     depth: WAFER_THICKNESS * MICRON_TO_UNIT,
@@ -149,13 +167,6 @@ async function buildProbe() {
   waferGeo.computeVertexNormals();
   const waferMesh = new THREE.Mesh(waferGeo, siliconMat);
   scene.add(waferMesh);
-  // Outline the wafer edges for clarity
-  // const waferEdges = new THREE.EdgesGeometry(waferGeo);
-  // const waferOutline = new THREE.LineSegments(
-  //   waferEdges,
-  //   new THREE.LineBasicMaterial({ color: 0x555555 })
-  // );
-  // scene.add(waferOutline);
   
   // Manually add front and back caps to ensure faces are rendered
   const capGeo = new THREE.ShapeGeometry(shape);
