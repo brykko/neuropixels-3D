@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import Papa from 'papaparse';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
@@ -12,8 +13,17 @@ const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
 
 // const HDR_FILENAME = 'paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
 const HDR_FILENAME = 'studio_small_08_1k.hdr';  // high-contrast studio lights
+const PROBE_TYPE = 2;           // NP generation (1 or 2)
+const AUTOROTATE_PROBE = true;
 
-const ROTATE_PROBE = true;
+let elecFile, outlineFile;
+if (PROBE_TYPE==1){
+  elecFile = '/site_positions_np1.csv'
+  outlineFile = '/probe_outline_np1.csv'
+} else if (PROBE_TYPE==2){
+  elecFile = '/site_positions_np2.csv'
+  outlineFile = '/probe_outline_np2.csv'
+}
 
 // === Scene Setup ===
 const scene = new THREE.Scene();
@@ -22,6 +32,7 @@ const scene = new THREE.Scene();
 // as a whole (convenient when we need to rotate)
 const probeGroup = new THREE.Group();
 scene.add(probeGroup);
+probeGroup.rotation.y = -2;
 
 // Set a dark background for better contrast
 scene.background = new THREE.Color(0x202020);
@@ -35,12 +46,12 @@ new RGBELoader()
   scene.environmentIntensity = 1 // scale the reflectance of the HDR environment
 
 const camera = new THREE.PerspectiveCamera(
-  60,
+  10,
   window.innerWidth / window.innerHeight,
-  0.001,    // instead of 0.1
-  10
+  1,    // instead of 0.1
+  20
 );
-camera.position.set(0.28, CAMERA_YPOS, 1.28);
+camera.position.set(-8, CAMERA_YPOS, 4);
 
 const renderer = new THREE.WebGLRenderer({
   canvas: document.getElementById('three-canvas'),
@@ -57,33 +68,32 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
 
 // Expose camera & controls in the console for interactive tweaking
 window.camera = camera;
-window.controls = controls;
+window.controls = orbitControls;
 
 // Press 'c' in the browser console to log the current camera position and target
 window.addEventListener('keydown', (e) => {
   if (e.key === 'c') {
     console.log('Camera position:', camera.position);
-    console.log('OrbitControls target:', controls.target);
+    console.log('OrbitControls target:', orbitControls.target);
   }
 });
 
 // Enable auto-rotate for an orbiting camera effect
-controls.autoRotate = true;
-controls.autoRotateSpeed = 2; // adjust rotation speed (default is 1)
-controls.target.set(0, CAMERA_YPOS, 0);
+orbitControls.autoRotate = false;
+orbitControls.target.set(0, CAMERA_YPOS, 0);
 
 // === Materials ===
 const siliconMat = new THREE.MeshPhysicalMaterial({
   color: 0x888888,
-  metalness: 0.1,
-  roughness: 0.1,
+  metalness: 0.3,
+  roughness: 0.2,
   transparent: true,
-  transmission: 0.9,
+  transmission: 0.8,
   // thickness: 1,
   thickness: WAFER_THICKNESS * MICRON_TO_UNIT,
   attenuationDistance: WAFER_THICKNESS * MICRON_TO_UNIT * 2,
@@ -120,7 +130,7 @@ async function loadCSV(url) {
 async function buildProbe() {
   // 1. Load and filter 2D outline points
   // Place probe_outline.csv in project_root/public/
-  const outlineRaw = await loadCSV('/probe_outline_np2.csv');
+  const outlineRaw = await loadCSV(outlineFile);
   const outlineData = outlineRaw.filter(
     ([x, y]) => typeof x === 'number' && typeof y === 'number'
   );
@@ -181,7 +191,7 @@ console.log('Number of cap triangles:', tris.length);
 
   // 2. Load electrode positions
   // Place site_positions.csv in project_root/public/
-  const sitesRaw = await loadCSV('/site_positions_np2.csv');
+  const sitesRaw = await loadCSV(elecFile);
   const sites = sitesRaw.filter(
     ([x, y]) => typeof x === 'number' && typeof y === 'number'
   );
@@ -215,7 +225,10 @@ buildProbe().catch(err => console.error('Error building probe:', err));
 // === Render Loop ===
 function animate() {
   requestAnimationFrame(animate);
-  controls.update();
+  orbitControls.update();
+  if (AUTOROTATE_PROBE) {
+    probeGroup.rotation.y += 0.002;
+  }
   renderer.render(scene, camera);
 }
 animate();
