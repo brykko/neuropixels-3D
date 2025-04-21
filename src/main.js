@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Papa from 'papaparse';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 // === Constants & Scale ===
 const MICRON_TO_UNIT = 0.001;      // 1 µm = 0.001 Three.js units
@@ -13,6 +14,13 @@ const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
 const scene = new THREE.Scene();
 // Set a dark background for better contrast
 scene.background = new THREE.Color(0x202020);
+// Load an HDR environment for realistic transmission reflections
+new RGBELoader()
+  .setDataType(THREE.HalfFloatType)
+  .load('studio_small_03_1k.hdr', (hdr) => {
+    hdr.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = hdr;
+  });
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
@@ -26,6 +34,10 @@ const renderer = new THREE.WebGLRenderer({
   canvas: document.getElementById('three-canvas'),
   antialias: true,
 });
+// Enable physically correct lighting and HDR tone mapping
+renderer.physicallyCorrectLights = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.setSize(window.innerWidth, window.innerHeight);
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -70,12 +82,15 @@ addLight(10, 0, 0);
 addLight(-10, 0, 0);
 
 // === Materials ===
-const siliconMat = new THREE.MeshStandardMaterial({
+const siliconMat = new THREE.MeshPhysicalMaterial({
   color: 0x888888,
-  metalness: 0.9,
+  metalness: 0.3,
   roughness: 0.1,
-  opacity: 0.5,
   transparent: true,
+  transmission: 0.9,
+  thickness: WAFER_THICKNESS * MICRON_TO_UNIT,
+  attenuationDistance: WAFER_THICKNESS * MICRON_TO_UNIT * 2,
+  attenuationColor: 0xffffff,
   side: THREE.DoubleSide,
 });
 
