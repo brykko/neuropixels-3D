@@ -11,18 +11,24 @@ const ELECTRODE_SIZE = 12;         // edge length in µm
 const ELECTRODE_THICKNESS = 3;     // in µm
 const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
 
-// const HDR_FILENAME = 'paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
-const HDR_FILENAME = 'studio_small_08_1k.hdr';  // high-contrast studio lights
-const PROBE_TYPE = 2;           // NP generation (1 or 2)
+// const HDR_FILENAME = './paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
+const HDR_FILENAME = './studio_small_08_1k.hdr';  // high-contrast studio lights
+// Determine probe type from URL (e.g. ?probe_type=1 or ?probe=2), defaulting to 2
+let PROBE_TYPE = 2;
+const urlParams = new URLSearchParams(window.location.search);
+const probeParam = parseInt(urlParams.get('probe_type') || urlParams.get('probe'), 10);
+if (probeParam === 1 || probeParam === 2) {
+  PROBE_TYPE = probeParam;
+}
 const AUTOROTATE_PROBE = true;
 
 let elecFile, outlineFile;
 if (PROBE_TYPE==1){
-  elecFile = '/site_positions_np1.csv'
-  outlineFile = '/probe_outline_np1.csv'
+  elecFile = './site_positions_np1.csv'
+  outlineFile = './probe_outline_np1.csv'
 } else if (PROBE_TYPE==2){
-  elecFile = '/site_positions_np2.csv'
-  outlineFile = '/probe_outline_np2.csv'
+  elecFile = './site_positions_np2.csv'
+  outlineFile = './probe_outline_np2.csv'
 }
 
 // === Scene Setup ===
@@ -35,7 +41,7 @@ scene.add(probeGroup);
 probeGroup.rotation.y = -2;
 
 // Set a dark background for better contrast
-scene.background = new THREE.Color(0x202020);
+scene.background = new THREE.Color(0x000000);
 // Load an HDR environment for realistic transmission reflections
 new RGBELoader()
   .setDataType(THREE.HalfFloatType)
@@ -46,12 +52,12 @@ new RGBELoader()
   scene.environmentIntensity = 1 // scale the reflectance of the HDR environment
 
 const camera = new THREE.PerspectiveCamera(
-  10,
+  30,
   window.innerWidth / window.innerHeight,
   1,    // instead of 0.1
   20
 );
-camera.position.set(-8, CAMERA_YPOS, 4);
+camera.position.set(-2.5, CAMERA_YPOS, 1.25);
 
 const renderer = new THREE.WebGLRenderer({
   canvas: document.getElementById('three-canvas'),
