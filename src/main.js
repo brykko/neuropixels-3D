@@ -13,8 +13,16 @@ const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
 // const HDR_FILENAME = 'paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
 const HDR_FILENAME = 'studio_small_08_1k.hdr';  // high-contrast studio lights
 
+const ROTATE_PROBE = true;
+
 // === Scene Setup ===
 const scene = new THREE.Scene();
+
+// Create a 'group' for all of the probe components. We can then manipulate this group
+// as a whole (convenient when we need to rotate)
+const probeGroup = new THREE.Group();
+scene.add(probeGroup);
+
 // Set a dark background for better contrast
 scene.background = new THREE.Color(0x202020);
 // Load an HDR environment for realistic transmission reflections
@@ -156,20 +164,20 @@ console.log('Number of cap triangles:', tris.length);
   });
   waferGeo.computeVertexNormals();
   const waferMesh = new THREE.Mesh(waferGeo, siliconMat);
-  scene.add(waferMesh);
+  probeGroup.add(waferMesh); // anything added to probeGroup gets added to scene automatically
 
   // Manually add front and back caps to ensure faces are rendered
   const capGeo = new THREE.ShapeGeometry(shape);
   // Front cap (at z=0)
   const frontCap = new THREE.Mesh(capGeo, siliconMat);
   frontCap.position.set(0, 0, 0);
-  scene.add(frontCap);
+  probeGroup.add(frontCap);
 
   // Back cap (at z = wafer thickness)
   const backCap = new THREE.Mesh(capGeo, siliconMat);
   // backCap.rotation.x = Math.PI; // flip normal
   backCap.position.set(0, 0, WAFER_THICKNESS * MICRON_TO_UNIT);
-  scene.add(backCap);
+  probeGroup.add(backCap);
 
   // 2. Load electrode positions
   // Place site_positions.csv in project_root/public/
@@ -197,7 +205,7 @@ console.log('Number of cap triangles:', tris.length);
       y * MICRON_TO_UNIT,
       waferTopZ + (ELECTRODE_THICKNESS * MICRON_TO_UNIT) / 2
     );
-    scene.add(elecMesh);
+    probeGroup.add(elecMesh);
   });
 }
 
