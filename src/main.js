@@ -13,19 +13,17 @@ const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
 // const HDR_FILENAME = './paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
 const HDR_FILENAME = './studio_small_08_1k.hdr';  // high-contrast studio lights
 // Determine probe type from URL (e.g. ?probe_type=1 or ?probe=2), defaulting to 2
-let PROBE_TYPE = 2;
 const urlParams = new URLSearchParams(window.location.search);
-const probeParam = parseInt(urlParams.get('probe_type') || urlParams.get('probe'), 10);
-if (probeParam === 1 || probeParam === 2) {
-  PROBE_TYPE = probeParam;
-}
+const probeType = parseInt(urlParams.get('probe_type')) || 2;
+const tranparent = Boolean(parseInt(urlParams.get('transparent'))) || false;
+
 const AUTOROTATE_PROBE = true;
 
 let elecFile, outlineFile;
-if (PROBE_TYPE==1){
+if (probeType==1){
   elecFile = './site_positions_np1.csv'
   outlineFile = './probe_outline_np1.csv'
-} else if (PROBE_TYPE==2){
+} else if (probeType==2){
   elecFile = './site_positions_np2.csv'
   outlineFile = './probe_outline_np2.csv'
 }
@@ -40,7 +38,7 @@ scene.add(probeGroup);
 probeGroup.rotation.y = -2;
 
 // Set a dark background for better contrast
-scene.background = new THREE.Color(0x000000);
+// scene.background = new THREE.Color(0x000000);
 // Load an HDR environment for realistic transmission reflections
 new RGBELoader()
   .setDataType(THREE.HalfFloatType)
@@ -61,6 +59,7 @@ camera.position.set(-2.5, CAMERA_YPOS, 1.25);
 const renderer = new THREE.WebGLRenderer({
   canvas: document.getElementById('three-canvas'),
   antialias: true,
+  alpha: tranparent
 });
 // Enable physically correct lighting and HDR tone mapping
 renderer.physicallyCorrectLights = true;
