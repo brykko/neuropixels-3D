@@ -9,6 +9,8 @@ const WAFER_THICKNESS = 20;        // in µm
 const ELECTRODE_SIZE = 12;         // edge length in µm
 const ELECTRODE_THICKNESS = 3;     // in µm
 const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
+// Spin speed in radians per second
+const AUTO_ROTATE_SPEED = -0.2;  // tweak this for faster/slower
 
 // const HDR_FILENAME = './paul_lobe_haus_1k.hdr';     // semi-outdoor, overcast
 const HDR_FILENAME = './studio_small_08_1k.hdr';  // high-contrast studio lights
@@ -227,13 +229,30 @@ console.log('Number of cap triangles:', tris.length);
 // === Initialize ===
 buildProbe().catch(err => console.error('Error building probe:', err));
 
-// === Render Loop ===
+const clock = new THREE.Clock();
+
 function animate() {
   requestAnimationFrame(animate);
   orbitControls.update();
+
   if (AUTOROTATE_PROBE) {
-    probeGroup.rotation.y += 0.002;
+    // How much time has passed since the last frame?
+    const delta = clock.getDelta();
+    // Rotate by (radians/sec) × (seconds since last frame)
+    probeGroup.rotation.y += AUTO_ROTATE_SPEED * delta;
   }
+
   renderer.render(scene, camera);
 }
 animate();
+
+// // === Render Loop ===
+// function animate() {
+//   requestAnimationFrame(animate);
+//   orbitControls.update();
+//   if (AUTOROTATE_PROBE) {
+//     probeGroup.rotation.y += 0.002;
+//   }
+//   renderer.render(scene, camera);
+// }
+// animate();
