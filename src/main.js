@@ -8,7 +8,7 @@ const MICRON_TO_UNIT = 0.001;      // 1 µm = 0.001 Three.js units
 const WAFER_THICKNESS = 20;        // in µm
 const ELECTRODE_SIZE = 12;         // edge length in µm
 const ELECTRODE_THICKNESS = 3;     // in µm
-const CAMERA_YPOS = 0.5            // offset from shank tips, in mm
+const CAMERA_YPOS = 1            // offset from shank tips, in mm
 // Spin speed in radians per second
 const AUTO_ROTATE_SPEED = -0.2;  // tweak this for faster/slower
 
@@ -37,7 +37,7 @@ const scene = new THREE.Scene();
 // as a whole (convenient when we need to rotate)
 const probeGroup = new THREE.Group();
 scene.add(probeGroup);
-probeGroup.rotation.y = -2;
+probeGroup.rotation.y = 0;
 
 // Set a dark background for better contrast
 // scene.background = new THREE.Color(0x000000);
@@ -56,7 +56,7 @@ const camera = new THREE.PerspectiveCamera(
   1,    // instead of 0.1
   20
 );
-camera.position.set(-2.5, CAMERA_YPOS, 1.25);
+camera.position.set(-5, CAMERA_YPOS, 2.5);
 
 const renderer = new THREE.WebGLRenderer({
   canvas: document.getElementById('three-canvas'),
